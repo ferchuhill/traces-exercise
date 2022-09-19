@@ -1,0 +1,39 @@
+version: "3.9"
+services:
+
+  webapp:
+    build:
+      context: .
+    container_name: app_test
+    volumes:
+      - .:/usr/src/app
+    env_file:
+      - '.env'
+    ports:
+      - 9000:3000
+    environment:
+      PORT:  3000
+      NODE_ENV: "testing"
+      MONGODB_CONNSTRING: mongodb://mongo_test
+      REDIS_HOST: "redis_test"
+      REDIS_PORT: ""
+      REDIS_PASSWORD: 
+    networks:
+      - default
+
+  redis:
+    image: redis
+    container_name: redis_test
+    networks:
+      - default
+    restart: unless-stopped
+
+  mongodb:
+    image: mongo:5.0
+    container_name: mongo_test
+    networks:
+      - default
+    restart: unless-stopped
+
+networks:
+  default:
