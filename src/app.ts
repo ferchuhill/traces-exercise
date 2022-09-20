@@ -9,13 +9,6 @@ import createError from 'http-errors';
 import tracesRoutes from './modules/traces/route';
 import statisticsRoutes from './modules/statistics/route';
 
-interface ConectionType {
-  host: string;
-  port: number;
-  user?: string;
-  password?: string;
-}
-
 const buildServer = () => {
 
   // Load environment variables from .env file, where API keys and passwords are configured
@@ -37,12 +30,12 @@ const buildServer = () => {
 
   //connected fastify to mongoose
   try {
-    const mongoUser = process.env.MONGO_USER || '' ;
-    const mongoPassword = process.env.MONGO_PASSWORD || '' ;
-    const mongoHost = process.env.MONGO_HOST || 'localhost' ;
-    const mongoPort = process.env.MONGO_PORT || 27017 ;
-    const mongoDatabase = process.env.MONGO_DATABASE || 'traces' ;
-    const mongoUrl = (mongoUser == '') ? `mongodb://${mongoHost}:${mongoPort}/${mongoDatabase}` : `mongodb://${mongoUser}:${mongoPassword}@${mongoHost}:${mongoPort}/${mongoDatabase}`;
+    const mongoUrl = process.env.MONGO_URL || '' ;
+    // const mongoPassword = process.env.MONGO_PASSWORD || '' ;
+    // const mongoHost = process.env.MONGO_HOST || 'localhost' ;
+    // const mongoPort = process.env.MONGO_PORT || 27017 ;
+    // const mongoDatabase = process.env.MONGO_DATABASE || 'traces' ;
+    // const mongoUrl = (mongoUser == '') ? `mongodb://${mongoHost}:${mongoPort}/${mongoDatabase}` : `mongodb://${mongoUser}:${mongoPassword}@${mongoHost}:${mongoPort}/${mongoDatabase}`;
     mongoose.connect(mongoUrl);
   } catch (err) {
     throw createError(500, 'Error connecting to MongoDB');
@@ -90,19 +83,8 @@ const buildServer = () => {
 
    // Register Redis cache
    try {
-    const redisOptions: ConectionType = {
-      host: process.env.REDIS_HOST || 'localhost',
-      port: process.env.REDIS_PORT 
-        ? parseInt(process.env.REDIS_PORT) 
-        : 6379,
-    };
-    if(process.env.REDIS_PASSWORD) {
-      redisOptions.password = process.env.REDIS_PASSWORD;
-    }
-    if(process.env.REDIS_USER) {
-      redisOptions.password = process.env.REDIS_USER;
-    }
-    server.register(fastifyRedis, redisOptions);
+    const url = process.env.REDIS_URL || '';
+    server.register(fastifyRedis, {url: url});
   } catch (err) {
     throw createError(500,'Error connecting to Redis');
   }
