@@ -4,9 +4,17 @@ import fastifyRedis from '@fastify/redis';
 import swagger from '@fastify/swagger';
 import mongoose from 'mongoose';
 import * as dotenv from 'dotenv';
+import createError from 'http-errors';
 
 import tracesRoutes from './modules/traces/route';
 import statisticsRoutes from './modules/statistics/route';
+
+interface ConectionType {
+  host: string;
+  port: number;
+  user?: string;
+  password?: string;
+}
 
 const buildServer = () => {
 
@@ -29,12 +37,15 @@ const buildServer = () => {
 
   //connected fastify to mongoose
   try {
-    const urlMongo = 
-      `mongodb://${process.env.MONGO_HOST}:${process.env.MONGO_PORT}/trace` 
-      || 'mongodb://localhost:27017/trace';
-    mongoose.connect(urlMongo);
-  } catch (e) {
-    console.error(e);
+    const mongoUser = process.env.MONGO_USER || '' ;
+    const mongoPassword = process.env.MONGO_PASSWORD || '' ;
+    const mongoHost = process.env.MONGO_HOST || 'localhost' ;
+    const mongoPort = process.env.MONGO_PORT || 27017 ;
+    const mongoDatabase = process.env.MONGO_DATABASE || 'traces' ;
+    const mongoUrl = (mongoUser == '') ? `mongodb://${mongoHost}:${mongoPort}/${mongoDatabase}` : `mongodb://${mongoUser}:${mongoPassword}@${mongoHost}:${mongoPort}/${mongoDatabase}`;
+    mongoose.connect(mongoUrl);
+  } catch (err) {
+    throw createError(500, 'Error connecting to MongoDB');
   }
 
   // Register cors
@@ -77,15 +88,24 @@ const buildServer = () => {
     });
   }
 
-  let redisPort = process.env.REDIS_PORT 
-    ? parseInt(process.env.REDIS_PORT) 
-    : 6379;
-
-  // Register Redis cache
-  server.register(fastifyRedis, { 
-    host: process.env.REDIS_HOST || '127.0.0.1', 
-    port: redisPort,
-  });
+   // Register Redis cache
+   try {
+    const redisOptions: ConectionType = {
+      host: process.env.REDIS_HOST || 'localhost',
+      port: process.env.REDIS_PORT 
+        ? parseInt(process.env.REDIS_PORT) 
+        : 6379,
+    };
+    if(process.env.REDIS_PASSWORD) {
+      redisOptions.password = process.env.REDIS_PASSWORD;
+    }
+    if(process.env.REDIS_USER) {
+      redisOptions.password = process.env.REDIS_USER;
+    }
+    server.register(fastifyRedis, redisOptions);
+  } catch (err) {
+    throw createError(500,'Error connecting to Redis');
+  }
 
   server.register(tracesRoutes, { prefix: 'traces' });
   server.register(statisticsRoutes, { prefix: 'statistics' });
